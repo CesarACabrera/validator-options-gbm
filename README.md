@@ -36,12 +36,16 @@ The tool generates dynamic plots using `matplotlib` to visualize:
 
 ![App Demo](docs/demo_gui.png)
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Requirements
 * **Language:** Python
 * **Libraries:** * `NumPy`: For high-performance numerical calculations.
     * `SciPy`: For statistical distributions (norm.cdf).
     * `Matplotlib`: For financial data visualization.
     * `Tkinter`: For the Graphical User Interface (GUI).
+    
+    To install all dependencies automatically, run:
+    ```bash
+    pip install -r requirements.txt
 
 ## 📥 Installation & Usage
 
