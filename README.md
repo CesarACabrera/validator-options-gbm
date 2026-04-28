@@ -51,4 +51,4 @@ The tool generates dynamic plots using `matplotlib` to visualize:
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/CesarACabrera/validator-options-gmb.git](https://github.com/CesarACabrera/validator-options-gmb.git)
+   git clone https://github.com/CesarACabrera/validator-options-gbm.git
