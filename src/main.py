@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from scipy.stats import norm
 import io
 from PIL import Image, ImageTk
+from engine import QuantEngine
 
 class DerivativesVisualizerApp(tk.Tk):
     FIXED_FONT_SIZE = 14
@@ -22,6 +23,7 @@ class DerivativesVisualizerApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.engine = QuantEngine()
         self.title("Visualizador de Derivados y Estrategias con Opciones")
         self.geometry("2000x1200")
         self.scaling_factor = 1.0
@@ -184,12 +186,12 @@ class DerivativesVisualizerApp(tk.Tk):
             r = self.r_var.get()
             sigma = self.sigma_var.get()
             mu = self.mu_var.get()
-            time, path = self.simulate_gbm(S0, mu, sigma, T)
+            time, path = self.engine.simulate_gbm(S0, mu, sigma, T)
             self.simulated_final_price = path[-1]
             self.plot_simulation(time, path, S0, K)
-            self.forward_price_var.set(f"${self.calculate_forward_price(S0, r, T):.4f}")
-            self.call_price_var.set(f"${self.black_scholes(S0, K, T, r, sigma, 'call'):.4f}")
-            self.put_price_var.set(f"${self.black_scholes(S0, K, T, r, sigma, 'put'):.4f}")
+            self.forward_price_var.set(f"${self.engine.calculate_forward_price(S0, r, T):.4f}")
+            self.call_price_var.set(f"${self.engine.black_scholes(S0, K, T, r, sigma, 'call'):.4f}")
+            self.put_price_var.set(f"${self.engine.black_scholes(S0, K, T, r, sigma, 'put'):.4f}")
             self.update_payoff_plot()
         except Exception as e:
             self.forward_price_var.set("Error")
@@ -241,14 +243,7 @@ class DerivativesVisualizerApp(tk.Tk):
             self.latex_images.append(img)
             ttk.Label(parent_frame, image=img).pack(anchor=tk.W, pady=(10, 0))
             ttk.Label(parent_frame, textvariable=var, font=value_font).pack(anchor=tk.W, pady=(0, 15), padx=5)
-
-    def simulate_gbm(self, S0, mu, sigma, T, dt=0.01):
-        n = int(T / dt)
-        t = np.linspace(0, T, n)
-        W = np.insert(np.cumsum(np.random.standard_normal(size=n - 1)), 0, 0) * np.sqrt(dt)
-        X = (mu - 0.5 * sigma ** 2) * t + sigma * W
-        return t, S0 * np.exp(X)
-
+    
     def plot_simulation(self, t, p, S0, K):
         plt.rc('font', size=12)
         self.ax.clear()
@@ -261,19 +256,6 @@ class DerivativesVisualizerApp(tk.Tk):
         self.ax.legend()
         self.ax.grid(True)
         self.canvas.draw()
-
-    @staticmethod
-    def calculate_forward_price(S0, r, T):
-        return S0 * np.exp(r * T)
-
-    @staticmethod
-    def black_scholes(S0, K, T, r, sigma, o):
-        d1 = (np.log(S0 / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
-        d2 = d1 - sigma * np.sqrt(T)
-        if o == 'call':
-            return S0 * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-        else:
-            return K * np.exp(-r * T) * norm.cdf(-d2) - S0 * norm.cdf(-d1)
 
 if __name__ == "__main__":
     app = DerivativesVisualizerApp()
