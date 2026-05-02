@@ -15,19 +15,19 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from scipy.stats import norm
 import io
 from PIL import Image, ImageTk
-from engine import QuantEngine
+from engine import MarketData, QuantEngine
+from utils import VisualUtils
 
 class DerivativesVisualizerApp(tk.Tk):
     FIXED_FONT_SIZE = 14
     FIXED_LATEX_FONTSIZE = 16
+    SCALING_FACTOR = 1.0
 
     def __init__(self):
         super().__init__()
         self.engine = QuantEngine()
         self.title("Visualizador de Derivados y Estrategias con Opciones")
         self.geometry("2000x1200")
-        self.scaling_factor = 1.0
-        self.base_latex_fontsize = self.FIXED_LATEX_FONTSIZE
         self.simulated_final_price = None
         self.latex_images = []
 
@@ -180,18 +180,20 @@ class DerivativesVisualizerApp(tk.Tk):
 
     def run_simulation_and_valuation(self, event=None):
         try:
-            S0 = self.S0_var.get()
-            K = self.K_var.get()
-            T = self.T_var.get()
-            r = self.r_var.get()
-            sigma = self.sigma_var.get()
-            mu = self.mu_var.get()
-            time, path = self.engine.simulate_gbm(S0, mu, sigma, T)
+            current_market = MarketData(
+            S0=self.S0_var.get(),
+            K=self.K_var.get(),
+            T=self.T_var.get(),
+            r=self.r_var.get(),
+            sigma=self.sigma_var.get(),
+            mu=self.mu_var.get()
+        )
+            time, path = self.engine.simulate_gbm(current_market)
             self.simulated_final_price = path[-1]
-            self.plot_simulation(time, path, S0, K)
-            self.forward_price_var.set(f"${self.engine.calculate_forward_price(S0, r, T):.4f}")
-            self.call_price_var.set(f"${self.engine.black_scholes(S0, K, T, r, sigma, 'call'):.4f}")
-            self.put_price_var.set(f"${self.engine.black_scholes(S0, K, T, r, sigma, 'put'):.4f}")
+            self.plot_simulation(time, path, current_market.S0, current_market.K)
+            self.forward_price_var.set(f"${self.engine.calculate_forward_price(current_market):.4f}")
+            self.call_price_var.set(f"${self.engine.black_scholes(current_market, 'call'):.4f}")
+            self.put_price_var.set(f"${self.engine.black_scholes(current_market, 'put'):.4f}")
             self.update_payoff_plot()
         except Exception as e:
             self.forward_price_var.set("Error")
@@ -200,19 +202,6 @@ class DerivativesVisualizerApp(tk.Tk):
             self.simulated_final_price = None
             self.update_payoff_plot()
             print(f"Error: {e}")
-
-    def create_latex_image(self, latex_string, base_fontsize):
-        scaled_fontsize = int(base_fontsize * self.scaling_factor)
-        scaled_dpi = int(100 * self.scaling_factor)
-        fig = plt.figure(figsize=(1, 0.5), dpi=scaled_dpi)
-        fig.text(0, 0, latex_string, fontsize=scaled_fontsize, va="bottom")
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', transparent=True, bbox_inches='tight', pad_inches=0)
-        buf.seek(0)
-        img = Image.open(buf)
-        photo_image = ImageTk.PhotoImage(img)
-        plt.close(fig)
-        return photo_image
 
     def create_parameter_widgets(self, parent_frame):
         params = [
@@ -224,7 +213,7 @@ class DerivativesVisualizerApp(tk.Tk):
             (r'Deriva Esperada ($\mu$):', self.mu_var)
         ]
         for idx, (latex_text, var) in enumerate(params):
-            img = self.create_latex_image(latex_text, self.base_latex_fontsize)
+            img = VisualUtils.create_latex_image(latex_text, self.FIXED_LATEX_FONTSIZE, self.SCALING_FACTOR)
             self.latex_images.append(img)
             label = ttk.Label(parent_frame, image=img)
             entry = ttk.Entry(parent_frame, textvariable=var, width=10)
@@ -239,7 +228,7 @@ class DerivativesVisualizerApp(tk.Tk):
         ]
         value_font = ("Helvetica", 15)
         for latex_text, var in results:
-            img = self.create_latex_image(latex_text, self.base_latex_fontsize + 2)
+            img = VisualUtils.create_latex_image(latex_text, self.FIXED_LATEX_FONTSIZE + 2, self.SCALING_FACTOR)
             self.latex_images.append(img)
             ttk.Label(parent_frame, image=img).pack(anchor=tk.W, pady=(10, 0))
             ttk.Label(parent_frame, textvariable=var, font=value_font).pack(anchor=tk.W, pady=(0, 15), padx=5)
